@@ -3,8 +3,6 @@ package com.xingray.java.server.common.entity;
 import java.util.function.Function;
 
 public class ServerResult<T> {
-
-
     private final boolean success;
     private final T data;
     private final int code;
