@@ -22,6 +22,7 @@ import java.util.Map;
 
 public class CustomHandlerMethodArgumentResolver implements HandlerMethodArgumentResolver, SmartInitializingSingleton {
 
+    public static final String DEFAULT_DATA_FORMAT_PATTERN = "yyyy-MM-dd HH:mm:ss";
     private final RequestMappingHandlerAdapter requestMappingHandlerAdapter;
 
     public CustomHandlerMethodArgumentResolver(RequestMappingHandlerAdapter requestMappingHandlerAdapter) {
@@ -46,9 +47,6 @@ public class CustomHandlerMethodArgumentResolver implements HandlerMethodArgumen
 
     @Override
     public Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer, NativeWebRequest webRequest, WebDataBinderFactory binderFactory) throws Exception {
-        System.out.println("parameter:" + parameter);
-        System.out.println("webRequest:" + webRequest);
-
         Map<String, String[]> parameterMap = webRequest.getParameterMap();
         Parameter parameter1 = parameter.getParameter();
         Type parameterizedType = parameter1.getParameterizedType();
@@ -132,7 +130,7 @@ public class CustomHandlerMethodArgumentResolver implements HandlerMethodArgumen
             DateTimeFormat dateTimeFormat = field.getAnnotation(DateTimeFormat.class);
             String pattern;
             if (dateTimeFormat == null) {
-                pattern = "yyyy-MM-dd HH:mm:ss";
+                pattern = DEFAULT_DATA_FORMAT_PATTERN;
             } else {
                 pattern = dateTimeFormat.pattern();
             }
