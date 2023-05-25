@@ -6,6 +6,7 @@ import com.xingray.java.util.ObjectUtil;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.core.MethodParameter;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.bind.annotation.ValueConstants;
 import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
@@ -78,6 +79,9 @@ public class CustomHandlerMethodArgumentResolver implements HandlerMethodArgumen
                     key = requestParam.name();
                 }
                 defaultValue = requestParam.defaultValue();
+                if (defaultValue.equals(ValueConstants.DEFAULT_NONE)) {
+                    defaultValue = null;
+                }
                 isRequire = requestParam.required();
             }
 
