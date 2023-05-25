@@ -22,6 +22,7 @@
 
         <spring.version>6.0.7</spring.version>
         <java-common.version>1.0.0</java-common.version>
+        <jackson.version>2.15.0</jackson.version>
     </properties>
 
     <dependencyManagement>
@@ -52,6 +53,19 @@
                 <artifactId>java-util</artifactId>
                 <version>${java-common.version}</version>
             </dependency>
+
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>5.10.0-M1</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xingray</groupId>
+                <artifactId>java-json-core</artifactId>
+                <version>1.0.0</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 

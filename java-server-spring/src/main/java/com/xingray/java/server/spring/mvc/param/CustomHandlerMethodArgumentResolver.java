@@ -1,5 +1,7 @@
 package com.xingray.java.server.spring.mvc.param;
 
+import com.xingray.java.json.ClassNode;
+import com.xingray.java.json.JsonConverter;
 import com.xingray.java.util.ObjectUtil;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.core.MethodParameter;
@@ -12,7 +14,6 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 
 import java.lang.reflect.*;
 import java.math.BigDecimal;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -24,9 +25,12 @@ public class CustomHandlerMethodArgumentResolver implements HandlerMethodArgumen
 
     public static final String DEFAULT_DATA_FORMAT_PATTERN = "yyyy-MM-dd HH:mm:ss";
     private final RequestMappingHandlerAdapter requestMappingHandlerAdapter;
+    private final JsonConverter jsonConverter;
 
-    public CustomHandlerMethodArgumentResolver(RequestMappingHandlerAdapter requestMappingHandlerAdapter) {
+    public CustomHandlerMethodArgumentResolver(RequestMappingHandlerAdapter requestMappingHandlerAdapter,
+                                               JsonConverter jsonConverter) {
         this.requestMappingHandlerAdapter = requestMappingHandlerAdapter;
+        this.jsonConverter = jsonConverter;
     }
 
     @Override
@@ -85,7 +89,7 @@ public class CustomHandlerMethodArgumentResolver implements HandlerMethodArgumen
 
     }
 
-    private void setFieldValue(Object paramObject, Field field, boolean isRequire, String[] values, String defaultValue) throws IllegalAccessException, InvocationTargetException, NoSuchMethodException, InstantiationException, ParseException {
+    private void setFieldValue(Object paramObject, Field field, boolean isRequire, String[] values, String defaultValue) throws Exception {
         if (values == null) {
             if (defaultValue != null) {
                 // 设置默认值
@@ -101,7 +105,7 @@ public class CustomHandlerMethodArgumentResolver implements HandlerMethodArgumen
         setValue(paramObject, field, values);
     }
 
-    private void setValue(Object paramObject, Field field, String[] values) throws IllegalAccessException, NoSuchMethodException, InvocationTargetException, InstantiationException, ParseException {
+    private void setValue(Object paramObject, Field field, String[] values) throws Exception {
         if (values == null) {
             return;
         }
@@ -118,15 +122,20 @@ public class CustomHandlerMethodArgumentResolver implements HandlerMethodArgumen
             return;
         }
         String value = values[0];
-        setValue(paramObject, field, value);
+        Object fieldValue = getFieldValue(field, value);
+        if (fieldValue != null) {
+            field.setAccessible(true);
+            field.set(paramObject, fieldValue);
+        }
     }
 
-    private void setValue(Object paramObject, Field field, String value) throws IllegalAccessException, ParseException {
-        Object fieldValue;
+    private Object getFieldValue(Field field, String value) throws Exception {
         Class<?> fieldType = field.getType();
         if (fieldType.equals(BigDecimal.class)) {
-            fieldValue = new BigDecimal(value);
-        } else if (fieldType.equals(Date.class)) {
+            return new BigDecimal(value);
+        }
+
+        if (fieldType.equals(Date.class)) {
             DateTimeFormat dateTimeFormat = field.getAnnotation(DateTimeFormat.class);
             String pattern;
             if (dateTimeFormat == null) {
@@ -134,13 +143,32 @@ public class CustomHandlerMethodArgumentResolver implements HandlerMethodArgumen
             } else {
                 pattern = dateTimeFormat.pattern();
             }
-            fieldValue = new SimpleDateFormat(pattern).parse(value);
-        } else {
-            fieldValue = ObjectUtil.ensureMatchesType(value, fieldType);
+            return new SimpleDateFormat(pattern).parse(value);
         }
-        if (fieldValue != null) {
-            field.setAccessible(true);
-            field.set(paramObject, fieldValue);
+
+        JsonObjectField annotation = field.getAnnotation(JsonObjectField.class);
+        if (annotation != null) {
+            return jsonConverter.toObject(value, fieldType);
         }
+        JsonArrayField jsonArrayField = field.getAnnotation(JsonArrayField.class);
+        if (jsonArrayField != null) {
+            Class<?> elementClass = jsonArrayField.value();
+            if (fieldType.equals(List.class)) {
+                return jsonConverter.toObject(value, new ClassNode<>(List.class, elementClass));
+            } else if (List.class.isAssignableFrom(fieldType)) {
+                List list = (List) fieldType.getDeclaredConstructor(null).newInstance(null);
+                list.addAll(jsonConverter.toObject(value, new ClassNode<>(List.class, elementClass)));
+                return list;
+            } else if (fieldType.isArray()) {
+                List list = jsonConverter.toObject(value, new ClassNode<>(List.class, elementClass));
+                int size = list.size();
+                Object targetArray = Array.newInstance(elementClass, size);
+                for (int i = 0; i < size; i++) {
+                    Array.set(targetArray, i, list.get(i));
+                }
+            }
+        }
+
+        return ObjectUtil.ensureMatchesType(value, fieldType);
     }
 }

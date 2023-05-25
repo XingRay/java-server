@@ -6,6 +6,7 @@ module com.xingray.java.server.spring {
     requires spring.beans;
 
     requires com.xingray.java.util;
+    requires com.xingray.java.json;
 
     exports com.xingray.java.server.spring.valid;
     exports com.xingray.java.server.spring.mvc.param;
